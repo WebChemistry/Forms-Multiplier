@@ -247,6 +247,7 @@ class Multiplier extends Container
 	private function createComponents(ComponentResolver $resolver): void
 	{
 		$containers = [];
+		$containerDefaults = $this->createContainer()->getValues('array');
 
 		// Components from httpData
 		if ($this->isFormSubmitted()) {
@@ -254,7 +255,7 @@ class Multiplier extends Container
 				$containers[] = $container = $this->addCopy($number);
 
 				/** @var BaseControl $control */
-				foreach ($container->getControls() as $control) {
+				foreach ($container->getComponents(false, IControl::class) as $control) {
 					$control->loadHttpData();
 				}
 			}
@@ -265,10 +266,11 @@ class Multiplier extends Container
 		}
 
 		// Default number of copies
-		if (!$this->isFormSubmitted() && !$this->values) {
+		if (!$this->values) {
 			$copyNumber = $this->copyNumber;
-			while ($copyNumber > 0 && $this->isValidMaxCopies()) {
+			while ($copyNumber > 0 && $this->isValidMaxCopies() && $this->totalCopies < $this->minCopies) {
 				$containers[] = $container = $this->addCopy();
+				$container->setValues($containerDefaults);
 				$copyNumber--;
 			}
 		}
@@ -283,7 +285,7 @@ class Multiplier extends Container
 			$count = $resolver->getCreateNum();
 			while ($count > 0 && $this->isValidMaxCopies()) {
 				$this->noValidate[] = $containers[] = $container = $this->addCopy();
-				$container->setValues($this->createContainer()->getValues('array'));
+				$container->setValues($containerDefaults);
 				$count--;
 			}
 		}
@@ -520,6 +522,7 @@ class Multiplier extends Container
 		if ($this->created) {
 			foreach ($this->getContainers() as $container) {
 				$this->removeComponent($container);
+				$this->totalCopies--;
 			}
 
 			$this->created = false;
